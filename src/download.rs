@@ -22,11 +22,14 @@ pub struct Download {
 impl Download {
     pub fn new(our_peer_id: String, metainfo: Metainfo) -> Result<Download, Error> {
         let file_length = metainfo.info.length;
+        println!("File length: {}", file_length);
         let piece_length = metainfo.info.piece_length;
+        println!("Piece length: {}", piece_length);
         let num_pieces = metainfo.info.num_pieces;
+        println!("Number of pieces: {}", metainfo.info.num_pieces);
 
         // create/open file
-        let path = Path::new("downloads").join(&metainfo.info.name);
+        let path = Path::new("./").join(&metainfo.info.name);
         let mut file = try!(OpenOptions::new().create(true).read(true).write(true).open(path));
 
         // create pieces

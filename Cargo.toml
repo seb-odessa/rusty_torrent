@@ -9,9 +9,9 @@ authors = ["ken@kenpratt.net", "pietromenna@yahoo.com"]
 
 
 [dependencies]
-bencode = "0.1"
-getopts = "0.2"
+bencode = "*"
+getopts = "*"
 hyper = "0.5"
-rand = "0.3"
-rust-crypto = "0.2"
+rand = "*"
+rust-crypto = "*"
 url = "0.2"

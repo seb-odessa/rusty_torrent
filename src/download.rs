@@ -13,10 +13,10 @@ pub const BLOCK_SIZE: u32 = 16384;
 
 pub struct Download {
     pub our_peer_id: String,
-    pub metainfo:    Metainfo,
-    pieces:          Vec<Piece>,
-    file:            File,
-    peer_channels:   Vec<Sender<IPC>>,
+    pub metainfo: Metainfo,
+    pieces: Vec<Piece>,
+    file: File,
+    peer_channels: Vec<Sender<IPC>>,
 }
 
 impl Download {
@@ -30,7 +30,11 @@ impl Download {
 
         // create/open file
         let path = Path::new("./").join(&metainfo.info.name);
-        let mut file = try!(OpenOptions::new().create(true).read(true).write(true).open(path));
+        let mut file = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .open(path)?;
 
         // create pieces
         let mut pieces = vec![];
@@ -42,15 +46,15 @@ impl Download {
                 (file_length - offset) as u32
             };
             let mut piece = Piece::new(length, offset, metainfo.info.pieces[i as usize].clone());
-            try!(piece.verify(&mut file));
+            piece.verify(&mut file)?;
             pieces.push(piece);
         }
 
         Ok(Download {
-            our_peer_id:   our_peer_id,
-            metainfo:      metainfo,
-            pieces:        pieces,
-            file:          file,
+            our_peer_id: our_peer_id,
+            metainfo: metainfo,
+            pieces: pieces,
+            file: file,
             peer_channels: vec![],
         })
     }
@@ -59,23 +63,30 @@ impl Download {
         self.peer_channels.push(channel);
     }
 
-    pub fn store(&mut self, piece_index: u32, block_index: u32, data: Vec<u8>) -> Result<(), Error> {
+    pub fn store(
+        &mut self,
+        piece_index: u32,
+        block_index: u32,
+        data: Vec<u8>,
+    ) -> Result<(), Error> {
         {
             let piece = &mut self.pieces[piece_index as usize];
             if piece.is_complete || piece.has_block(block_index) {
                 // if we already have this block, do an early return to avoid re-writing the piece, sending complete messages, etc
-                return Ok(())
+                return Ok(());
             }
             try!(piece.store(&mut self.file, block_index, data));
         }
 
         // notify peers that this block is complete
         self.broadcast(IPC::BlockComplete(piece_index, block_index));
+        println!("Complete {} piece in {} block", piece_index, block_index);
 
         // notify peers if piece is complete
         if self.pieces[piece_index as usize].is_complete {
             self.broadcast(IPC::PieceComplete(piece_index));
         }
+        println!("Complete {} piece", piece_index);
 
         // notify peers if download is complete
         if self.is_complete() {
@@ -105,10 +116,15 @@ impl Download {
         self.pieces.iter().map(|p| p.is_complete).collect()
     }
 
-    pub fn incomplete_blocks_for_piece(&self, piece_index: u32) -> Vec<(u32,u32)> {
+    pub fn incomplete_blocks_for_piece(&self, piece_index: u32) -> Vec<(u32, u32)> {
         let ref piece = self.pieces[piece_index as usize];
         if !piece.is_complete {
-            piece.blocks.iter().filter(|b| !b.is_complete).map(|b| (b.index, b.length)).collect()
+            piece
+                .blocks
+                .iter()
+                .filter(|b| !b.is_complete)
+                .map(|b| (b.index, b.length))
+                .collect()
         } else {
             vec![]
         }
@@ -117,7 +133,7 @@ impl Download {
     fn is_complete(&self) -> bool {
         for piece in self.pieces.iter() {
             if !piece.is_complete {
-                return false
+                return false;
             }
         }
         true
@@ -127,17 +143,17 @@ impl Download {
         self.peer_channels.retain(|channel| {
             match channel.send(ipc.clone()) {
                 Ok(_) => true,
-                Err(SendError(_)) => false // presumably channel has disconnected
+                Err(SendError(_)) => false, // presumably channel has disconnected
             }
         });
     }
 }
 
 struct Piece {
-    length:      u32,
-    offset:      u64,
-    hash:        Sha1,
-    blocks:      Vec<Block>,
+    length: u32,
+    offset: u64,
+    hash: Sha1,
+    blocks: Vec<Block>,
     is_complete: bool,
 }
 
@@ -156,10 +172,10 @@ impl Piece {
         }
 
         Piece {
-            length:      length,
-            offset:      offset,
-            hash:        hash,
-            blocks:      blocks,
+            length: length,
+            offset: offset,
+            hash: hash,
+            blocks: blocks,
             is_complete: false,
         }
     }
@@ -185,10 +201,9 @@ impl Piece {
 
     fn verify(&mut self, file: &mut File) -> Result<bool, Error> {
         // read in the part of the file corresponding to the piece
-        try!(file.seek(io::SeekFrom::Start(self.offset)));
+        file.seek(io::SeekFrom::Start(self.offset))?;
         let mut data = vec![];
-        try!(file.take(self.length as u64).read_to_end(&mut data));
-
+        file.take(self.length as u64).read_to_end(&mut data)?;
         // calculate the hash, verify it, and update is_complete
         self.is_complete = self.hash == calculate_sha1(&data);
         Ok(self.is_complete)
@@ -215,16 +230,16 @@ impl Piece {
 }
 
 struct Block {
-    index:       u32,
-    length:      u32,
+    index: u32,
+    length: u32,
     is_complete: bool,
 }
 
 impl Block {
     fn new(index: u32, length: u32) -> Block {
         Block {
-            index:       index,
-            length:      length,
+            index: index,
+            length: length,
             is_complete: false,
         }
     }

@@ -1,11 +1,11 @@
 [package]
 name = "rusty_torrent"
 description = "A BitTorrent client, written in Rust."
-repository = "https://github.com/kenpratt/rusty_torrent"
-version = "0.0.1"
+repository = "https://github.com/seb-odessa/rusty_torrent.git"
+version = "0.0.2"
 readme = "README.md"
 keywords = ["bittorrent"]
-authors = ["ken@kenpratt.net", "pietromenna@yahoo.com"]
+authors = ["ken@kenpratt.net", "pietromenna@yahoo.com", "seb@ukr.net"]
 
 
 [dependencies]
@@ -14,4 +14,5 @@ getopts = "*"
 hyper = "0.5"
 rand = "*"
 rust-crypto = "*"
-url = "0.2"
+url = "*"
+#percent-encoding = "*"
